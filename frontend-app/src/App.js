@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import SaturationMutagenesis from './SaturationMutagenesis';
-import CustomMutagenesis from './CustomMutagenesis';
-import ScanningLibrary from './ScanningLibrary';
-import OligoMaker from './OligoMaker';
+import SaturationMutagenesis from './pages/Mutagenesis/Saturation/SaturationMutagenesis';
+import CustomMutagenesis from './pages/Mutagenesis/Custom/CustomMutagenesis';
+import ScanningLibrary from './pages/Mutagenesis/Scanning/ScanningLibrary';
+import OligoMaker from './pages/OligoMaker/OligoMaker';
 import './App.css';
 
 function App() {

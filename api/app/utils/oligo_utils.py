@@ -1,4 +1,4 @@
-from sequence_utils import get_reverse_complement, get_gc_content, get_tm, get_dg_intra_hairpin, get_dg_full_complementary, get_dg_partial_complementary
+from .sequence_utils import get_reverse_complement, get_gc_content, get_tm, get_dg_intra_hairpin, get_dg_full_complementary, get_dg_partial_complementary
 
 def simple_oligo_maker(sequence, oligo_length=60, overlap_length=30):
     forward = []

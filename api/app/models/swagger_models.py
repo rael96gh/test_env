@@ -1,115 +1,168 @@
 """
-Modelos de datos para Swagger/OpenAPI documentation
+All Swagger models for the API
 """
-from flask_restx import fields
+from flask_restx import fields, Api
 
-def get_models(api):
-    """
-    Retorna todos los modelos de datos para la documentación de Swagger
-    """
+# Create a dummy Api object to define models
+# This is a bit of a hack, but it allows us to define the models
+# without having to pass the api object around.
+api = Api()
 
-    # Modelos básicos
-    health_response_model = api.model('HealthResponse', {
-        'status': fields.String(required=True, description='Status of the API')
-    })
+# Models
+sequence_model = api.model('SequenceAnalyze', {
+    'sequence': fields.String(required=True, description='DNA sequence to analyze')
+})
 
-    error_response_model = api.model('ErrorResponse', {
-        'error': fields.String(required=True, description='Error message')
-    })
+generate_oligos_model = api.model('GenerateOligos', {
+    'sequence': fields.String(required=True, description='DNA sequence in FASTA format'),
+    'oligo_length': fields.Integer(default=60, description='Oligo length'),
+    'overlap_length': fields.Integer(default=30, description='Overlap length'),
+    'gap_length': fields.Integer(default=20, description='Gap length for gapped oligo maker'),
+    'na_conc': fields.Integer(default=50, description='Na+ concentration (mM)'),
+    'k_conc': fields.Integer(default=0, description='K+ concentration (mM)'),
+    'oligo_conc': fields.Integer(default=250, description='Oligo concentration (nM)'),
+    'simple_oligo_maker': fields.Boolean(default=False, description='Use simple oligo maker'),
+    'gapped_oligo_maker': fields.Boolean(default=False, description='Use gapped oligo maker'),
+    'clean_oligos': fields.Boolean(default=False, description='Clean oligos to remove secondary structures'),
+    'optimized_oligos': fields.Boolean(default=False, description='Optimize oligos for melting temperature')
+})
 
-    # Modelos para análisis de secuencias
-    sequence_analyze_model = api.model('SequenceAnalyze', {
+custom_mutagenesis_model = api.model('CustomMutagenesis', {
+    'original_sequence': fields.String(required=True, description='Original DNA sequence'),
+    'original_name': fields.String(required=True, description='Name for the original sequence'),
+    'mutations': fields.List(fields.String, required=True, description='List of mutations to apply (e.g., "A123C")'),
+    'generation_mode': fields.String(default='group', enum=['group', 'individual'], description='Generation mode')
+})
+
+saturation_mutagenesis_model = api.model('SaturationMutagenesis', {
+    'fasta_content': fields.String(required=True, description='Sequence in FASTA format'),
+    'saturation_mutations': fields.List(fields.String, required=True, description='List of saturation mutations (e.g., "123-NNN")'),
+    'exclude_stops': fields.Boolean(default=False, description='Exclude stop codons from the results')
+})
+
+scanning_library_model = api.model('ScanningLibrary', {
+    'sequence': fields.String(required=True, description='DNA sequence'),
+    'sequence_name': fields.String(required=True, description='Name for the sequence'),
+    'start_position': fields.Integer(description='Start position for the scan'),
+    'end_position': fields.Integer(description='End position for the scan'),
+    'full_sequence': fields.Boolean(default=False, description='Apply to the full sequence'),
+    'library_type': fields.String(default='NNN', description='Codon library type (e.g., NNN, NNK)')
+})
+
+generate_primers_model = api.model('GeneratePrimers', {
+    'sequence': fields.String(required=True, description='DNA sequence for primer generation'),
+    'options': fields.Raw(description='Advanced primer generation options')
+})
+
+recycle_model = api.model('RecycleOligos', {
+    'fragments_csv': fields.String(required=True, description='Content of the fragments CSV file'),
+    'pooling_csv': fields.String(required=True, description='Content of the pooling CSV file')
+})
+
+download_oligos_csv_model = api.model('DownloadOligosCSV', {
+    'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+    'well_format': fields.String(default='96-column', description='Plate well format'),
+    'sequence_name': fields.String(default='sequence', description='Base name for the output file')
+})
+
+download_primers_csv_model = api.model('DownloadPrimersCSV', {
+    'generated_primers': fields.Raw(required=True, description='Dictionary of generated primers'),
+    'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+    'well_format': fields.String(default='96-column', description='Source plate well format'),
+    'dest_well_format': fields.String(default='96-column', description='Destination plate well format'),
+    'sequence_name': fields.String(default='sequence', description='Base name for the output file')
+})
+
+download_pooling_model = api.model('DownloadPoolingFiles', {
+    'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+    'well_format': fields.String(default='96-column', description='Source plate well format'),
+    'dest_well_format': fields.String(default='96-column', description='Destination plate well format')
+})
+
+def get_models(api_instance):
+    """Register all models with the api instance"""
+    from flask_restx import fields
+
+    # Re-create models with the actual API instance
+    sequence_model_real = api_instance.model('SequenceAnalyze', {
         'sequence': fields.String(required=True, description='DNA sequence to analyze')
     })
 
-    sequence_analysis_response_model = api.model('SequenceAnalysisResponse', {
-        'reverse_complement': fields.String(description='Reverse complement of the sequence'),
-        'gc_content': fields.Float(description='GC content percentage'),
-        'tm': fields.Float(description='Melting temperature')
-    })
-
-    # Modelos para generación de oligos
-    generate_oligos_model = api.model('GenerateOligos', {
-        'sequence': fields.String(required=True, description='DNA sequence'),
+    generate_oligos_model_real = api_instance.model('GenerateOligos', {
+        'sequence': fields.String(required=True, description='DNA sequence in FASTA format'),
         'oligo_length': fields.Integer(default=60, description='Oligo length'),
         'overlap_length': fields.Integer(default=30, description='Overlap length'),
-        'gap_length': fields.Integer(default=20, description='Gap length'),
-        'na_conc': fields.Integer(default=50, description='Na+ concentration'),
-        'k_conc': fields.Integer(default=0, description='K+ concentration'),
-        'oligo_conc': fields.Integer(default=250, description='Oligo concentration'),
+        'gap_length': fields.Integer(default=20, description='Gap length for gapped oligo maker'),
+        'na_conc': fields.Integer(default=50, description='Na+ concentration (mM)'),
+        'k_conc': fields.Integer(default=0, description='K+ concentration (mM)'),
+        'oligo_conc': fields.Integer(default=250, description='Oligo concentration (nM)'),
         'simple_oligo_maker': fields.Boolean(default=False, description='Use simple oligo maker'),
         'gapped_oligo_maker': fields.Boolean(default=False, description='Use gapped oligo maker'),
-        'clean_oligos': fields.Boolean(default=False, description='Clean oligos'),
-        'optimized_oligos': fields.Boolean(default=False, description='Optimize oligos')
+        'clean_oligos': fields.Boolean(default=False, description='Clean oligos to remove secondary structures'),
+        'optimized_oligos': fields.Boolean(default=False, description='Optimize oligos for melting temperature')
     })
 
-    oligo_response_model = api.model('OligoResponse', {
-        'name': fields.String(description='Oligo name'),
-        'sequence': fields.String(description='Oligo sequence'),
-        'length': fields.Integer(description='Oligo length'),
-        'tm': fields.Float(description='Melting temperature'),
-        'gc_content': fields.Float(description='GC content'),
-        'fragment': fields.String(description='Fragment name')
-    })
-
-    # Modelos para mutagénesis
-    custom_mutagenesis_model = api.model('CustomMutagenesis', {
+    custom_mutagenesis_model_real = api_instance.model('CustomMutagenesis', {
         'original_sequence': fields.String(required=True, description='Original DNA sequence'),
-        'original_name': fields.String(required=True, description='Original sequence name'),
-        'mutations': fields.List(fields.String, required=True, description='List of mutations'),
-        'generation_mode': fields.String(default='group', description='Generation mode')
+        'original_name': fields.String(required=True, description='Name for the original sequence'),
+        'mutations': fields.List(fields.String, required=True, description='List of mutations to apply (e.g., "A123C")'),
+        'generation_mode': fields.String(default='group', enum=['group', 'individual'], description='Generation mode')
     })
 
-    saturation_mutagenesis_model = api.model('SaturationMutagenesis', {
-        'fasta_content': fields.String(required=True, description='FASTA content'),
-        'saturation_mutations': fields.List(fields.String, required=True, description='Saturation mutations'),
-        'exclude_stops': fields.Boolean(default=False, description='Exclude stop codons')
+    saturation_mutagenesis_model_real = api_instance.model('SaturationMutagenesis', {
+        'fasta_content': fields.String(required=True, description='Sequence in FASTA format'),
+        'saturation_mutations': fields.List(fields.String, required=True, description='List of saturation mutations (e.g., "123-NNN")'),
+        'exclude_stops': fields.Boolean(default=False, description='Exclude stop codons from the results')
     })
 
-    scanning_library_model = api.model('ScanningLibrary', {
+    scanning_library_model_real = api_instance.model('ScanningLibrary', {
         'sequence': fields.String(required=True, description='DNA sequence'),
-        'sequence_name': fields.String(required=True, description='Sequence name'),
-        'start_position': fields.Integer(description='Start position'),
-        'end_position': fields.Integer(description='End position'),
-        'full_sequence': fields.Boolean(default=False, description='Use full sequence'),
-        'library_type': fields.String(default='NNN', description='Library type')
+        'sequence_name': fields.String(required=True, description='Name for the sequence'),
+        'start_position': fields.Integer(description='Start position for the scan'),
+        'end_position': fields.Integer(description='End position for the scan'),
+        'full_sequence': fields.Boolean(default=False, description='Apply to the full sequence'),
+        'library_type': fields.String(default='NNN', description='Codon library type (e.g., NNN, NNK)')
     })
 
-    # Modelos para primers
-    primer_options_model = api.model('PrimerOptions', {
-        'primer_length': fields.Integer(default=20, description='Primer length'),
-        'tm_target': fields.Float(default=60.0, description='Target melting temperature')
+    generate_primers_model_real = api_instance.model('GeneratePrimers', {
+        'sequence': fields.String(required=True, description='DNA sequence for primer generation'),
+        'options': fields.Raw(description='Advanced primer generation options')
     })
 
-    generate_primers_model = api.model('GeneratePrimers', {
-        'sequence': fields.String(required=True, description='DNA sequence'),
-        'options': fields.Nested(primer_options_model, description='Primer options')
+    recycle_model_real = api_instance.model('RecycleOligos', {
+        'fragments_csv': fields.String(required=True, description='Content of the fragments CSV file'),
+        'pooling_csv': fields.String(required=True, description='Content of the pooling CSV file')
     })
 
-    # Modelos para reciclaje
-    recycle_model = api.model('RecycleOligos', {
-        'fragments_csv': fields.String(required=True, description='Fragments CSV content'),
-        'pooling_csv': fields.String(required=True, description='Pooling CSV content')
+    download_oligos_csv_model_real = api_instance.model('DownloadOligosCSV', {
+        'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+        'well_format': fields.String(default='96-column', description='Plate well format'),
+        'sequence_name': fields.String(default='sequence', description='Base name for the output file')
     })
 
-    # Modelos para descarga de archivos
-    download_csv_model = api.model('DownloadCSV', {
-        'generated_oligos': fields.List(fields.Nested(oligo_response_model), description='Generated oligos'),
-        'well_format': fields.String(default='96-column', description='Well format'),
-        'sequence_name': fields.String(default='sequence', description='Sequence name')
+    download_primers_csv_model_real = api_instance.model('DownloadPrimersCSV', {
+        'generated_primers': fields.Raw(required=True, description='Dictionary of generated primers'),
+        'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+        'well_format': fields.String(default='96-column', description='Source plate well format'),
+        'dest_well_format': fields.String(default='96-column', description='Destination plate well format'),
+        'sequence_name': fields.String(default='sequence', description='Base name for the output file')
+    })
+
+    download_pooling_model_real = api_instance.model('DownloadPoolingFiles', {
+        'generated_oligos': fields.List(fields.Raw, required=True, description='List of generated oligos'),
+        'well_format': fields.String(default='96-column', description='Source plate well format'),
+        'dest_well_format': fields.String(default='96-column', description='Destination plate well format')
     })
 
     return {
-        'health_response': health_response_model,
-        'error_response': error_response_model,
-        'sequence_analyze': sequence_analyze_model,
-        'sequence_analysis_response': sequence_analysis_response_model,
-        'generate_oligos': generate_oligos_model,
-        'oligo_response': oligo_response_model,
-        'custom_mutagenesis': custom_mutagenesis_model,
-        'saturation_mutagenesis': saturation_mutagenesis_model,
-        'scanning_library': scanning_library_model,
-        'generate_primers': generate_primers_model,
-        'recycle': recycle_model,
-        'download_csv': download_csv_model
+        'sequence_model': sequence_model_real,
+        'generate_oligos_model': generate_oligos_model_real,
+        'custom_mutagenesis_model': custom_mutagenesis_model_real,
+        'saturation_mutagenesis_model': saturation_mutagenesis_model_real,
+        'scanning_library_model': scanning_library_model_real,
+        'generate_primers_model': generate_primers_model_real,
+        'recycle_model': recycle_model_real,
+        'download_oligos_csv_model': download_oligos_csv_model_real,
+        'download_primers_csv_model': download_primers_csv_model_real,
+        'download_pooling_model': download_pooling_model_real
     }

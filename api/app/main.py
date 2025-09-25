@@ -7,21 +7,28 @@ from flask_cors import CORS
 
 from app.config.settings import config
 from app.models.swagger_models import get_models
+
+# Import all namespaces
 from app.resources.health import health_ns
 from app.resources.sequences import sequences_ns
 from app.resources.oligos import oligos_ns
+from app.resources.mutagenesis import mutagenesis_ns
+from app.resources.primers import primers_ns
+from app.resources.downloads import downloads_ns
+from app.resources.recycle import recycle_ns
 
-def create_app(config_name='default'):
+def create_app_with_legacy_endpoints(config_name='default'):
     """Factory para crear la aplicación Flask"""
 
-    # Crear aplicación Flask
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Configurar CORS
-    CORS(app)
+    # Configure CORS for development - allow any localhost port
+    CORS(app, origins=['http://localhost:3000', 'http://localhost', 'http://localhost:80'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+         allow_headers=['Content-Type', 'Authorization'],
+         supports_credentials=True)
 
-    # Configurar API con Swagger
     api = Api(
         app,
         version='1.0',
@@ -34,20 +41,16 @@ def create_app(config_name='default'):
     # Registrar modelos de Swagger
     models = get_models(api)
 
-    # Registrar namespaces
-    api.add_namespace(health_ns, path='/health')
+    # Store models in app context for use in namespaces
+    app.models = models
+
+    # Registrar namespaces. We use a flat URL structure to match the frontend.
+    api.add_namespace(health_ns, path='/health') # Keep this one separate
     api.add_namespace(sequences_ns, path='/sequences')
     api.add_namespace(oligos_ns, path='/oligos')
-
-    return app
-
-def create_app_with_legacy_endpoints(config_name='default'):
-    """Factory que incluye endpoints legacy para compatibilidad"""
-
-    app = create_app(config_name)
-
-    # Importar y registrar endpoints legacy para compatibilidad con frontend
-    from app.services.legacy_compatibility import register_legacy_routes
-    register_legacy_routes(app)
+    api.add_namespace(mutagenesis_ns, path='/mutagenesis')
+    api.add_namespace(primers_ns, path='/primers')
+    api.add_namespace(downloads_ns, path='/downloads')
+    api.add_namespace(recycle_ns, path='/recycle')
 
     return app

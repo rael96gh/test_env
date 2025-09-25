@@ -1,18 +1,24 @@
-FROM nginx:alpine
+# Stage 1: Build the React application
+FROM node:16-alpine as build
 
-# Copy the HTML, CSS, and JS files to the nginx web directory
-COPY . /usr/share/nginx/html/
+WORKDIR /app
 
-# Create nginx configuration
-RUN echo 'server {' > /etc/nginx/conf.d/default.conf && \
-    echo '    listen 80;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    server_name localhost;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    root /usr/share/nginx/html;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    index Variant_library_dashboard.html;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        try_files $uri $uri/ /Variant_library_dashboard.html;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '}' >> /etc/nginx/conf.d/default.conf
+COPY package.json ./
+COPY package-lock.json ./
+
+RUN npm install
+
+COPY . ./
+
+RUN npm run build
+
+# Stage 2: Serve the static files with Nginx
+FROM nginx:1.21.3-alpine
+
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copy the nginx config file
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

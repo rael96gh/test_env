@@ -75,42 +75,101 @@ def generate_custom_mutagenesis(original_sequence, original_name, mutations, gen
         return [f">{current_name}\n{current_sequence}"]
 
 def generate_saturation_mutagenesis(sequences, saturation_mutations, exclude_stops):
+    print(f"🔥 MUTAGENESIS_UTILS - Starting with {len(sequences)} sequences, {len(saturation_mutations)} mutations")
+    print(f"🔥 MUTAGENESIS_UTILS - REVERSE_GENETIC_CODE keys: {list(REVERSE_GENETIC_CODE.keys())}")
+    print(f"🔥 MUTAGENESIS_UTILS - REVERSE_GENETIC_CODE sample: A={REVERSE_GENETIC_CODE.get('A', 'NOT_FOUND')}")
+
     all_generated_variants = set()
     amino_acids_with_stop = 'ACDEFGHIKLMNPQRSTVWY*'
     amino_acids_without_stop = 'ACDEFGHIKLMNPQRSTVWY'
     nucleotides = 'ATGC'
 
     amino_acids_to_use = amino_acids_without_stop if exclude_stops else amino_acids_with_stop
+    print(f"🔥 MUTAGENESIS_UTILS - Using amino acids: {amino_acids_to_use[:10]}... (exclude_stops={exclude_stops})")
 
     for seq_obj in sequences:
+        # Handle both formats: 'sequence' and 'seq'
+        sequence = seq_obj.get('sequence') or seq_obj.get('seq', '')
+        name = seq_obj.get('name', 'sequence')
+
+        print(f"🔥 MUTAGENESIS_UTILS - Processing sequence: name='{name}', length={len(sequence)}")
+        print(f"🔥 MUTAGENESIS_UTILS - First 30 chars: {sequence[:30]}...")
+
+        if not sequence:
+            print("❌ MUTAGENESIS_UTILS - Empty sequence, skipping")
+            continue
+
         for mut in saturation_mutations:
+            print(f"🔥 MUTAGENESIS_UTILS - Processing mutation: {mut}")
+
             if mut['type'] == 'N':
+                print("🔥 MUTAGENESIS_UTILS - Nucleotide mutation")
                 index = mut['pos'] - 1
-                if 0 <= index < len(seq_obj['sequence']):
-                    original_nucleotide = seq_obj['sequence'][index]
+                if 0 <= index < len(sequence):
+                    original_nucleotide = sequence[index]
+                    print(f"🔥 MUTAGENESIS_UTILS - Original nucleotide at pos {mut['pos']}: {original_nucleotide}")
+
                     for new_nuc in nucleotides:
                         if new_nuc != original_nucleotide:
-                            new_sequence = seq_obj['sequence'][:index] + new_nuc + seq_obj['sequence'][index + 1:]
+                            new_sequence = sequence[:index] + new_nuc + sequence[index + 1:]
                             if exclude_stops and contains_stop_codon(new_sequence):
+                                print(f"🔥 MUTAGENESIS_UTILS - Skipping {new_nuc} due to stop codon")
                                 continue
-                            variant_name = f"{seq_obj['name']}_N{mut['pos']}{new_nuc}"
+                            variant_name = f"{name}_N{mut['pos']}{new_nuc}"
                             all_generated_variants.add(f">{variant_name}\n{new_sequence}")
+                            print(f"🔥 MUTAGENESIS_UTILS - Added variant: {variant_name}")
+                else:
+                    print(f"❌ MUTAGENESIS_UTILS - Invalid nucleotide position {mut['pos']} for sequence length {len(sequence)}")
+
             elif mut['type'] == 'AA':
-                if len(seq_obj['sequence']) % 3 != 0:
+                print("🔥 MUTAGENESIS_UTILS - Amino acid mutation")
+                print(f"🔥 MUTAGENESIS_UTILS - Sequence length: {len(sequence)}, divisible by 3: {len(sequence) % 3 == 0}")
+
+                # Calculate number of complete codons available
+                complete_codons = len(sequence) // 3
+                print(f"🔥 MUTAGENESIS_UTILS - Complete codons available: {complete_codons}")
+
+                if complete_codons == 0:
+                    print("❌ MUTAGENESIS_UTILS - No complete codons available, skipping AA mutation")
                     continue
+
+                # Check if mutation position is within available codons
+                if mut['pos'] > complete_codons:
+                    print(f"❌ MUTAGENESIS_UTILS - Mutation position {mut['pos']} exceeds available codons {complete_codons}")
+                    continue
+
                 start_index = (mut['pos'] - 1) * 3
-                if 0 <= start_index + 3 <= len(seq_obj['sequence']):
-                    original_codon = seq_obj['sequence'][start_index:start_index + 3]
+                print(f"🔥 MUTAGENESIS_UTILS - AA position {mut['pos']} -> codon start index: {start_index}")
+
+                if 0 <= start_index + 3 <= len(sequence):
+                    original_codon = sequence[start_index:start_index + 3]
                     original_aa = GENETIC_CODE.get(original_codon, '?')
+                    print(f"🔥 MUTAGENESIS_UTILS - Original codon: {original_codon} -> AA: {original_aa}")
+
+                    variants_added = 0
+                    print(f"🔥 MUTAGENESIS_UTILS - Target amino acids to iterate: '{amino_acids_to_use}'")
+                    print(f"🔥 MUTAGENESIS_UTILS - Original AA to skip: '{original_aa}'")
 
                     for target_aa in amino_acids_to_use:
+                        print(f"🔥 MUTAGENESIS_UTILS - Processing target AA: '{target_aa}'")
                         if target_aa == original_aa:
+                            print(f"🔥 MUTAGENESIS_UTILS - Skipping original AA: '{target_aa}'")
                             continue
                         target_codons = REVERSE_GENETIC_CODE.get(target_aa, [])
+                        print(f"🔥 MUTAGENESIS_UTILS - Target codons for {target_aa}: {target_codons}")
+
                         for new_codon in target_codons:
-                            new_sequence = seq_obj['sequence'][:start_index] + new_codon + seq_obj['sequence'][start_index + 3:]
-                            variant_name = f"{seq_obj['name']}_{original_aa}{mut['pos']}{target_aa}"
+                            new_sequence = sequence[:start_index] + new_codon + sequence[start_index + 3:]
+                            variant_name = f"{name}_{original_aa}{mut['pos']}{target_aa}"
                             all_generated_variants.add(f">{variant_name}\n{new_sequence}")
+                            variants_added += 1
+                            print(f"🔥 MUTAGENESIS_UTILS - Added variant: {variant_name}")
+
+                    print(f"🔥 MUTAGENESIS_UTILS - Added {variants_added} variants for position {mut['pos']}")
+                else:
+                    print(f"❌ MUTAGENESIS_UTILS - Invalid AA position {mut['pos']} (codon {start_index}-{start_index+3}) for sequence length {len(sequence)}")
+            else:
+                print(f"❌ MUTAGENESIS_UTILS - Unknown mutation type: {mut['type']}")
     return list(all_generated_variants)
 
 def generate_scanning_library(sequence, sequence_name, start_position, end_position, full_sequence, library_type):

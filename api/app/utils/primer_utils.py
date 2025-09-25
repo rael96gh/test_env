@@ -1,4 +1,4 @@
-from sequence_utils import get_reverse_complement, get_gc_content
+from .sequence_utils import get_reverse_complement, get_gc_content
 
 def calculate_primer_tm(sequence):
     gc_count = sequence.count('G') + sequence.count('C')

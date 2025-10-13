@@ -1,0 +1,4 @@
+Flask
+pandas
+flask-cors
+flask-restx

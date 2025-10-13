@@ -1,0 +1,22 @@
+.checkboxgroup {
+  display: flex;
+  flex-direction: row;
+  align-items: left;
+  gap: 10px;
+  margin-top: 20px;
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+.checkboxgroup input[type="checkbox"] {
+    transform: scale(1.0);
+    vertical-align: middle;
+    background-color: rgba(243, 242, 242, 0.807);
+    margin-left: -8%;
+    padding-left: 0px;
+    justify-content: flex-start;
+}
+
+.checkboxgroup input[type='checkbox']:checked {
+   accent-color: rgba(243, 242, 242, 0.807);
+}
